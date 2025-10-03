@@ -22,14 +22,14 @@ DEFAULT_FIXED_LOTS = {
 }
 
 DEFAULT_RISK_PERCENTAGES = {
-    "1": [10.0],
-    "2": [5.0, 5.0],
-    "3": [3.3, 3.3, 3.3],
-    "4": [2.5, 2.5, 2.5, 2.5],
-    "5": [2.0, 2.0, 2.0, 2.0, 2.0],
-    "6": [1.6, 1.6, 1.6, 1.6, 1.6, 1.6],
-    "7": [1.4, 1.4, 1.4, 1.4, 1.4, 1.4, 1.4],
-    "8": [1.3, 1.3, 1.3, 1.3, 1.2, 1.2, 1.2, 1.2],
+    "1": [2],
+    "2": [1, 1],
+    "3": [0.66, 0.66, 0.66],
+    "4": [0.5, 0.5, 0.5, 0.5],
+    "5": [0.4, 0.4, 0.4, 0.4, 0.4],
+    "6": [0.34, 0.34, 0.34, 0.34, 0.34, 0.34],
+    "7": [0.29, 0.29, 0.29, 0.29, 0.29, 0.29, 0.29],
+    "8": [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
 }
 
 # Create default risk configuration
@@ -120,11 +120,10 @@ def calculate_take_profit(symbol, entry_price, position, limit_index=0):
         "US30": "us30",
         "US500": "us500",
         "USTEC": "ustec",
-        "DE40": "de40",
-        "FR40": "fr40",
         "XAUUSD": "gold",
         "XAGUSD": "silver",
         "XTIUSD": "oil",
+        "JP225": "JPN225"
     }
 
     if symbol in specific_symbols:
@@ -260,17 +259,17 @@ def save_risk_config():
 
 # Default symbols for TP configuration
 DEFAULT_TP_SYMBOLS = {
-    "forex": 0,
-    "btc": 0,
-    "eth": 0,
-    "us30": 0,
-    "us500": 0,
-    "ustec": 0,
-    "dax": 0,
-    "fr40": 0,
-    "gold": 0,
-    "silver": 0,
-    "oil": 0,
+    "forex": 20,
+    "btc": 20,
+    "eth": 20,
+    "us30": 50,
+    "us500": 50,
+    "ustec": 50,
+    "dax": 50,
+    "fr40": 50,
+    "gold": 30,
+    "silver": 30,
+    "oil": 30,
 }
 
 # Load or initialize risk configuration
@@ -326,8 +325,11 @@ except Exception as e:
 
 
 # Initialize MetaTrader 5
-if not mt5.initialize():
-    print("MT5 initialization failed")
+if not mt5.initialize(path='C:\Program Files\Tickmill MT5 Terminal\\terminal64.exe', 
+                     login=25242312, 
+                     password="vE4Y7{nw?y6b", 
+                     server="Tickmill-Demo"):
+    print("MT5 initialization failed, error code =", mt5.last_error())
     exit()
 
 # Create the Discord client
@@ -498,10 +500,7 @@ def get_mapped_symbol(text: str) -> str or None:
     if len(matches) == 1:
         return matches[0]
     elif len(matches) > 1:
-        raise ValueError(
-            f"Several matches were found for {word}. Please specify the symbol with one of the following:\n * "
-            f"{'\n* '.join(matches)}"
-        )
+        raise ValueError(f"Several matches were found for {word}. Please specify the symbol with one of the following:\n * " + "\n * ".join(matches))
     return None
 
 
@@ -555,7 +554,7 @@ def parse_tm_signal(message):
     if comments_match:
         comments = comments_match.group(1).strip()
     if re.search("hot", message.lower()):
-        comments = f"{comments} {', '.join("HOT")}"
+        comments = f"{comments} {'HOT'}"
 
     # Process expiry (Default to week if not major pair or vth (valid till hit))
     expiry = "WEEK"
@@ -710,7 +709,7 @@ def place_trade(
             print(f"Symbol tick size: {symbol_info.trade_tick_size}")
             print(f"Symbol digits: {symbol_info.digits}")
 
-        # Send order request
+        # Send order request``
         result = mt5.order_send(request)
 
         if result is None:
