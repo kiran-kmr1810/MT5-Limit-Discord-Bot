@@ -22,14 +22,14 @@ DEFAULT_FIXED_LOTS = {
 }
 
 DEFAULT_RISK_PERCENTAGES = {
-    "1": [2],
-    "2": [1, 1],
-    "3": [0.66, 0.66, 0.66],
-    "4": [0.5, 0.5, 0.5, 0.5],
-    "5": [0.4, 0.4, 0.4, 0.4, 0.4],
-    "6": [0.34, 0.34, 0.34, 0.34, 0.34, 0.34],
-    "7": [0.29, 0.29, 0.29, 0.29, 0.29, 0.29, 0.29],
-    "8": [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
+    "1": [1],
+    "2": [0.5, 0.5],
+    "3": [0.33, 0.33, 0.33],
+    "4": [0.25, 0.25, 0.25, 0.25],
+    "5": [0.2, 0.2, 0.2, 0.2, 0.2],
+    "6": [0.16, 0.16, 0.16, 0.16, 0.16, 0.16],
+    "7": [0.14, 0.14, 0.14, 0.14, 0.14, 0.14, 0.14],
+    "8": [0.13, 0.13, 0.13, 0.13, 0.12, 0.12, 0.12, 0.12],
 }
 
 # Create default risk configuration
@@ -119,7 +119,9 @@ def calculate_take_profit(symbol, entry_price, position, limit_index=0):
         "ETHUSD": "eth",
         "US30": "us30",
         "US500": "us500",
-        "USTEC": "ustec",
+        "NAS100": "us100",
+        "DE40": "de40",
+        "FR40": "fr40",
         "XAUUSD": "gold",
         "XAGUSD": "silver",
         "XTIUSD": "oil",
@@ -259,14 +261,14 @@ def save_risk_config():
 
 # Default symbols for TP configuration
 DEFAULT_TP_SYMBOLS = {
-    "forex": 20,
-    "btc": 20,
-    "eth": 20,
-    "us30": 50,
-    "us500": 50,
-    "ustec": 50,
-    "dax": 50,
-    "fr40": 50,
+    "forex": 30,
+    "btc": 30,
+    "eth": 30,
+    "us30": 30,
+    "us500": 30,
+    "us100": 30,
+    "dax": 30,
+    "fr40": 30,
     "gold": 30,
     "silver": 30,
     "oil": 30,
@@ -345,13 +347,14 @@ AVAILABLE_SYMBOLS = {symbol.name for symbol in symbols} if symbols else set()
 SYMBOL_MAPPINGS = {
     "gold": "XAUUSD",
     "dax": "DE40",
-    "spx": "US500",
-    "nas": "USTEC",
+    "spx": "SP500",
+    "us100": "NAS100",
     "btc": "BTCUSD",
     "eth": "ETHUSD",
     "gu": "GBPUSD",
     "uj": "USDJPY",
     "silver": "XAGUSD",
+    "xaguusd": "XAGUSD",
 }
 
 
@@ -417,8 +420,10 @@ def calculate_lot_size(balance, risk_percentage, symbol, entry_price, sl):
         lot_size = symbol_info.volume_max
         print("Adjusted Lot Size to Max Volume")
     else:
-        # Round down to nearest valid increment
-        lot_size = int(lot_size / symbol_info.volume_step) * symbol_info.volume_step
+        if(symbol == "XAGUSD" or symbol == "XAUUSD"):
+            lot_size = round((int(lot_size / symbol_info.volume_step) * symbol_info.volume_step) / 100, 2)
+        else:
+            lot_size = round((int(lot_size / symbol_info.volume_step) * symbol_info.volume_step), 2)
 
     print(f"Final Calculated Lot Size for {symbol}: {lot_size}")
     return lot_size
@@ -439,6 +444,7 @@ def get_mapped_symbol(text: str) -> str or None:
     # print("DEBUG: ", text)
     # First check for exact stock symbols (ending in .NYSE or .NAS)
     words = text.upper().split()
+    print("DEBUG: ", words)
     for word in words:
         if word.endswith((".NYSE", ".NAS")):
             if word in AVAILABLE_SYMBOLS:
@@ -541,12 +547,14 @@ def parse_tm_signal(message):
         )
 
     # Convert large numbers if needed (Ex: AUDUSD is sometimes written as 61234 instead of 0.61234)
-    if float(numbers[1]) > 30000 and symbol not in ["US30", "JP225", "BTCUSD", "USTEC"]:
+    if float(numbers[1]) > 30000 and symbol not in ["US30", "JP225", "BTCUSD", "NAS100"]:
         numbers = [str(float(num) / 100000) for num in numbers]
 
     # Last number is stop loss, rest are limits
     stop_loss = numbers[-1]
     limits = numbers[:-1]
+    if symbol in ("US30", "JP225", "SP500", "NAS100", "DAX40", "UK100"):
+        limits = numbers[:-2]
 
     # Get comments and auto-keywords
     comments = ""
